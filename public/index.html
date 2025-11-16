@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amily Companion</title>
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18.3.1/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"
+    ></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=General+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ["Space Grotesk", "system-ui", "sans-serif"],
+              body: ["General Sans", "system-ui", "sans-serif"],
+            },
+            colors: {
+              ink: "#1f2330",
+              sand: "#fdf7f1",
+              rose: "#db7758",
+              shell: "#fff9f3",
+            },
+            dropShadow: {
+              glow: "0 30px 80px rgba(219, 119, 88, 0.25)",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      :root {
+        --amily-shell: #fff9f3;
+        --amily-sand: #f7efe7;
+        --amily-rose: #db7758;
+        --amily-berry: #c06389;
+        --amily-ink: #1f2330;
+        --amily-muted: #6f7280;
+        --amily-border: rgba(255, 255, 255, 0.55);
+      }
+
+      * {
+        font-family: "General Sans", system-ui, sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background-color: var(--amily-shell);
+        background-image: radial-gradient(circle at 15% 20%, rgba(254, 224, 203, 0.7), transparent 55%),
+          radial-gradient(circle at 80% 0%, rgba(214, 224, 255, 0.65), transparent 45%),
+          linear-gradient(135deg, var(--amily-shell), #fdf5ff 45%, #f7f2ff);
+        color: var(--amily-ink);
+        position: relative;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: auto;
+        z-index: -2;
+        border-radius: 999px;
+        filter: blur(120px);
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      body::before {
+        width: 420px;
+        height: 420px;
+        left: 5%;
+        top: 10%;
+        background: radial-gradient(circle, rgba(255, 180, 153, 0.5), transparent 70%);
+      }
+
+      body::after {
+        width: 520px;
+        height: 520px;
+        right: -5%;
+        bottom: 0%;
+        background: radial-gradient(circle, rgba(196, 173, 255, 0.4), transparent 70%);
+      }
+
+      #root {
+        position: relative;
+        z-index: 0;
+      }
+
+      ::selection {
+        background: rgba(219, 119, 88, 0.15);
+      }
+
+      .tab-bar-shadow {
+        box-shadow: 0 -20px 60px rgba(31, 35, 48, 0.08);
+      }
+
+      .material-symbols-rounded {
+        font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      @media (max-width: 640px) {
+        body::before,
+        body::after {
+          opacity: 0.35;
+          filter: blur(150px);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-[#FFFFF0] text-[#545454]">
+    <div id="root"></div>
+    <script type="text/babel" src="/components/icons.jsx"></script>
+    <script type="text/babel" src="/components/tabs/HomeTab.jsx"></script>
+    <script type="text/babel" src="/components/tabs/SafetyTab.jsx"></script>
+    <script type="text/babel" src="/components/tabs/WellnessTab.jsx"></script>
+    <script type="text/babel" src="/components/tabs/MemoriesTab.jsx"></script>
+    <script type="text/babel" src="/components/tabs/ChatTab.jsx"></script>
+    <script type="text/babel" src="/components/tabs/BuddyTab.jsx"></script>
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+      const { createRoot } = ReactDOM;
+      const Icons = window.AmilyIcons || {};
+      const {
+        ShieldIcon,
+        HeartIcon,
+        BookOpenIcon,
+        UsersIcon,
+        PhoneIcon,
+        MenuIcon,
+        XIcon,
+        ChatBubbleIcon,
+        BuddyIcon,
+        WellnessLeafIcon,
+        MemorySparkIcon,
+      } = Icons;
+      const Tabs = window.AmilyTabs || {};
+      const {
+        HomeTab,
+        SafetyTab,
+        WellnessTab,
+        MemoriesTab,
+        ChatTab,
+        BuddyTab,
+      } = Tabs;
+      const appPages = ["memories", "wellness", "chat", "safety", "buddy"];
+      const STORAGE_KEYS = {
+        token: "amily:token",
+        user: "amily:user",
+        userName: "amily:user:name",
+      };
+      const readStoredValue = (key, fallback = null) => {
+        try {
+          if (typeof window === "undefined" || !window.localStorage) {
+            return fallback;
+          }
+          const raw = window.localStorage.getItem(key);
+          return raw === null ? fallback : JSON.parse(raw);
+        } catch {
+          return fallback;
+        }
+      };
+      const writeStoredValue = (key, value) => {
+        try {
+          if (typeof window === "undefined" || !window.localStorage) {
+            return;
+          }
+          if (value === null || value === undefined) {
+            window.localStorage.removeItem(key);
+          } else {
+            window.localStorage.setItem(key, JSON.stringify(value));
+          }
+        } catch {
+          // Ignore storage errors in demo mode
+        }
+      };
+      function FeatureCard({ icon: Icon, title, description, note }) {
+        return (
+          <div className="group relative overflow-hidden rounded-[32px] border border-white/70 bg-white/80 p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-transform hover:-translate-y-1">
+            <div className="pointer-events-none absolute inset-x-6 top-6 bottom-6 rounded-[28px] bg-gradient-to-br from-[#fff4ed] via-transparent to-[#ffe9f7]/80 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="relative flex items-center justify-between">
+              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffe4d4] to-[#ffd7e8] text-[#d36258]">
+                <Icon className="text-[1.6rem]" />
+              </div>
+              {note && (
+                <span className="rounded-full border border-[#ffd9cc] px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-[#c4654b]">
+                  {note}
+                </span>
+              )}
+            </div>
+            <h3 className="mt-6 text-2xl font-semibold leading-tight">{title}</h3>
+            <p className="mt-3 text-sm leading-relaxed text-[#5b6172]">{description}</p>
+          </div>
+        );
+      }
+
+      function AmbientBackdrop() {
+        return (
+          <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+            <div className="absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-[rgba(255,214,204,0.6)] blur-[160px]" />
+            <div className="absolute right-0 top-10 h-[460px] w-[460px] rounded-full bg-[rgba(203,194,255,0.5)] blur-[180px]" />
+            <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[rgba(255,239,218,0.5)] blur-[220px]" />
+          </div>
+        );
+      }
+      function Navigation({ isLoggedIn, currentPage, onNavigate, onLogout }) {
+        const [menuOpen, setMenuOpen] = useState(false);
+        const navItems = isLoggedIn
+          ? appPages.map((page) => ({
+              id: page,
+              label: page.charAt(0).toUpperCase() + page.slice(1),
+            }))
+          : [
+              { id: "home", label: "Overview" },
+              { id: "login", label: "Sign in" },
+              { id: "signup", label: "Create account" },
+            ];
+
+        const handleNav = (id) => {
+          setMenuOpen(false);
+          onNavigate(id);
+        };
+
+        const statusChip = isLoggedIn ? "Companion space active" : "Previewing experience";
+
+        return (
+          <header
+            className="pointer-events-none sticky top-0 sm:top-4 z-40 px-2 sm:px-4"
+            style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0.25rem)' }}
+          >
+            <div className="mx-auto max-w-6xl">
+              <div className="pointer-events-auto overflow-hidden rounded-2xl sm:rounded-3xl border border-white/70 bg-white/85 shadow-[0_25px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+                <div className="flex h-[68px] sm:h-20 items-center justify-between px-3 sm:px-6 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleNav(isLoggedIn ? "chat" : "home")}
+                    className="flex items-center gap-4"
+                  >
+                    <div className="relative">
+                      <img src="/logo.png" alt="Amily" className="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl border border-white/70 shadow-md" />
+                      <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-[#58c6aa]" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm sm:text-base font-semibold tracking-tight text-[#1f2330]">Amily Companion</p>
+                      <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-[#db7758]/80">{statusChip}</p>
+                    </div>
+                  </button>
+
+                  <nav className="hidden items-center gap-1 md:flex md:flex-wrap">
+                    {navItems.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleNav(item.id)}
+                        className={`rounded-2xl px-4 py-2 text-sm font-semibold transition-all ${
+                          currentPage === item.id
+                            ? "bg-[#1f2330] text-white shadow-[0_12px_30px_rgba(22,30,50,0.15)]"
+                            : "text-[#4a4f5e] hover:bg-white/70"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </nav>
+
+                  <div className="flex items-center gap-3">
+                    {isLoggedIn ? (
+                      <>
+                        <span className="hidden rounded-full border border-[#cfeee4] bg-[#f1fbf6] px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-[#1f6d59] lg:inline-flex">
+                          Live
+                        </span>
+                        <button
+                          type="button"
+                          onClick={onLogout}
+                          className="rounded-2xl border border-[#f5d8cb] px-3 sm:px-4 py-2 text-sm font-semibold text-[#a24a38] hover:bg-[#fff4ef]"
+                        >
+                          Log out
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleNav("signup")}
+                        className="hidden rounded-2xl bg-[#1f2330] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(17,23,34,0.25)] transition hover:-translate-y-0.5 md:inline-flex"
+                      >
+                        Enter calm mode
+                      </button>
+                    )}
+                    {!isLoggedIn && (
+                      <button
+                        type="button"
+                        className="rounded-2xl border border-[#f5d8cb] p-2 md:hidden"
+                        onClick={() => setMenuOpen((state) => !state)}
+                        aria-label="Toggle navigation"
+                      >
+                        {menuOpen ? <XIcon /> : <MenuIcon />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {menuOpen && !isLoggedIn && (
+                  <div className="border-t border-white/60 bg-white/90 px-4 py-4 md:hidden">
+                    <div className="space-y-2">
+                      {navItems.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleNav(item.id)}
+                          className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold ${
+                            currentPage === item.id ? "bg-[#1f2330] text-white" : "text-[#4a4f5e] hover:bg-white"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                      {isLoggedIn ? (
+                        <button
+                          type="button"
+                          onClick={onLogout}
+                          className="w-full rounded-2xl border border-[#f5d8cb] px-4 py-3 text-left text-sm font-semibold text-[#a24a38]"
+                        >
+                          Log out
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleNav("signup")}
+                          className="w-full rounded-2xl bg-[#1f2330] px-4 py-3 text-left text-sm font-semibold text-white"
+                        >
+                          Enter calm mode
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+        );
+      }
+      function MobileTabBar({ currentPage, onNavigate }) {
+        const tabs = [
+          { id: "memories", label: "Memories", icon: BookOpenIcon },
+          { id: "wellness", label: "Health", icon: WellnessLeafIcon },
+          { id: "chat", label: "Chat", icon: ChatBubbleIcon },
+          { id: "safety", label: "Safety", icon: ShieldIcon },
+          { id: "buddy", label: "Buddy", icon: BuddyIcon },
+        ];
+        return (
+          <nav
+            className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 px-3 md:hidden"
+            style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0.85rem)' }}
+          >
+            <div className="pointer-events-auto mx-auto flex max-w-lg items-center justify-between rounded-[32px] border border-white/70 bg-white/85 px-2 py-2 shadow-[0_-18px_50px_rgba(16,24,40,0.12)] backdrop-blur-xl">
+              {tabs.map((tab) => {
+                const active = currentPage === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => onNavigate(tab.id)}
+                    className={`flex flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-1 text-[11px] font-semibold transition ${
+                      active ? "text-[#1f2330]" : "text-[#9b9fb2]"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-11 w-11 items-center justify-center rounded-2xl border ${
+                        active ? "border-[#1f2330] bg-[#1f2330] text-white" : "border-transparent bg-white/70"
+                      }`}
+                    >
+                      <tab.icon />
+                    </span>
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        );
+      }
+      function LoginPage({ onAuthSuccess }) {
+        const [email, setEmail] = useState("");
+        const [password, setPassword] = useState("");
+        const [status, setStatus] = useState(null);
+        const handleSubmit = async (event) => {
+          event.preventDefault();
+          setStatus({ type: "info", message: "Signing you in..." });
+          try {
+            const res = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.error || "Login failed");
+            }
+            setStatus({ type: "success", message: "Welcome back!" });
+            onAuthSuccess?.(
+              data.userId || data.user?.id || "demo-user",
+              data.token || null,
+              data.fullName || data.name || null
+            );
+          } catch (error) {
+            setStatus({ type: "error", message: error.message });
+          }
+        };
+        return (
+          <section className="relative px-4 py-16">
+            <div className="mx-auto max-w-2xl">
+              <div className="relative overflow-hidden rounded-[36px] border border-white/70 bg-white/85 p-8 shadow-[0_35px_90px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#fef6f0] via-transparent to-[#ffe5f0]" />
+                <div className="relative space-y-6">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#c2685a]">Sign in</p>
+                    <h2 className="mt-3 text-4xl font-semibold text-[#1f2330]">Step inside the calm companion space</h2>
+                    <p className="mt-3 text-sm text-[#6b6f7c]">
+                      Once authenticated, the tour view disappears and the five-tab care interface takes over instantly.
+                    </p>
+                  </div>
+
+                  {status && (
+                    <div
+                      className={`rounded-2xl border px-4 py-3 text-sm ${
+                        status.type === "error"
+                          ? "border-[#ffd5cc] bg-[#fff3ef] text-[#a64a37]"
+                          : status.type === "success"
+                          ? "border-[#c7efd8] bg-[#f1fbf6] text-[#1f6d59]"
+                          : "border-[#ffe5c8] bg-[#fff9ef] text-[#7b6551]"
+                      }`}
+                    >
+                      {status.message}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#303646]">Email</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        className="w-full rounded-2xl border border-white/80 bg-white/80 px-4 py-3 text-[#1f2330] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#1f2330]"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#303646]">Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        className="w-full rounded-2xl border border-white/80 bg-white/80 px-4 py-3 text-[#1f2330] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#1f2330]"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full rounded-2xl bg-[#1f2330] px-5 py-3 text-sm font-semibold text-white shadow-[0_25px_60px_rgba(15,23,42,0.25)] transition hover:-translate-y-0.5"
+                    >
+                      Sign in securely
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      }
+      function SignupPage({ onAuthSuccess }) {
+        const [email, setEmail] = useState("");
+        const [password, setPassword] = useState("");
+        const [name, setName] = useState("");
+        const [status, setStatus] = useState(null);
+        const handleSubmit = async (event) => {
+          event.preventDefault();
+          setStatus({ type: "info", message: "Creating your access..." });
+          try {
+            const res = await fetch("/api/auth/signup", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password, name, fullName: name }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.error || "Signup failed");
+            }
+            setStatus({
+              type: "success",
+              message: "Account created! Redirecting...",
+            });
+            onAuthSuccess?.(
+              data.userId || data.user?.id || "demo-user",
+              data.token || null,
+              data.fullName || name || null
+            );
+          } catch (error) {
+            setStatus({ type: "error", message: error.message });
+          }
+        };
+        return (
+          <section className="relative px-4 py-16">
+            <div className="mx-auto max-w-2xl">
+              <div className="relative overflow-hidden rounded-[36px] border border-white/70 bg-white/85 p-8 shadow-[0_35px_90px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-[#fef1e7] via-transparent to-[#f9e5ff]" />
+                <div className="relative space-y-6">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#a566d1]">Family onboarding</p>
+                    <h2 className="mt-3 text-4xl font-semibold text-[#1f2330]">Create the daily sanctuary</h2>
+                    <p className="mt-3 text-sm text-[#6b6f7c]">Only trusted relatives or caregivers should create accounts for elders.</p>
+                  </div>
+
+                  {status && (
+                    <div
+                      className={`rounded-2xl border px-4 py-3 text-sm ${
+                        status.type === "error"
+                          ? "border-[#ffd5cc] bg-[#fff3ef] text-[#a64a37]"
+                          : status.type === "success"
+                          ? "border-[#c7efd8] bg-[#f1fbf6] text-[#1f6d59]"
+                          : "border-[#ffe5c8] bg-[#fff9ef] text-[#7b6551]"
+                      }`}
+                    >
+                      {status.message}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#303646]">Your name</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(event) => setName(event.target.value)}
+                        className="w-full rounded-2xl border border-white/80 bg-white/80 px-4 py-3 text-[#1f2330] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#1f2330]"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#303646]">Email</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        className="w-full rounded-2xl border border-white/80 bg-white/80 px-4 py-3 text-[#1f2330] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#1f2330]"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-[#303646]">Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        className="w-full rounded-2xl border border-white/80 bg-white/80 px-4 py-3 text-[#1f2330] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#1f2330]"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full rounded-2xl bg-[#1f2330] px-5 py-3 text-sm font-semibold text-white shadow-[0_25px_60px_rgba(15,23,42,0.25)] transition hover:-translate-y-0.5"
+                    >
+                      Create account
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      }
+      function App() {
+        const initialToken = readStoredValue(STORAGE_KEYS.token, null);
+        const initialUserId = readStoredValue(STORAGE_KEYS.user, "demo-user") || "demo-user";
+        const initialUserName =
+          readStoredValue(STORAGE_KEYS.userName, "Companion friend") || "Companion friend";
+        const [currentPage, setCurrentPage] = useState(initialToken ? "chat" : "home");
+        const [isLoggedIn, setIsLoggedIn] = useState(Boolean(initialToken));
+        const [authToken, setAuthToken] = useState(initialToken);
+        const [activeUserId, setActiveUserId] = useState(initialUserId);
+        const [activeUserName, setActiveUserName] = useState(initialUserName);
+        const handleNavigate = (pageId) => {
+          if (isLoggedIn) {
+            if (!appPages.includes(pageId)) return;
+            setCurrentPage(pageId);
+          } else if (appPages.includes(pageId)) {
+            setCurrentPage("login");
+          } else {
+            setCurrentPage(pageId);
+          }
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        };
+        const handleAuthSuccess = (newUserId = "demo-user", token = null, fullName = null) => {
+          const resolvedUserId = newUserId || "demo-user";
+          const resolvedName = (fullName && fullName.trim()) || "Companion friend";
+          setIsLoggedIn(true);
+          setActiveUserId(resolvedUserId);
+          setAuthToken(token);
+          setActiveUserName(resolvedName);
+          writeStoredValue(STORAGE_KEYS.user, resolvedUserId);
+          writeStoredValue(STORAGE_KEYS.token, token || null);
+          writeStoredValue(STORAGE_KEYS.userName, resolvedName);
+          setCurrentPage("chat");
+          window.AmilyWellness?.setUser?.(resolvedUserId);
+        };
+        const handleLogout = () => {
+          setIsLoggedIn(false);
+          setActiveUserId("demo-user");
+          setAuthToken(null);
+          setActiveUserName("Companion friend");
+          setCurrentPage("home");
+          writeStoredValue(STORAGE_KEYS.user, "demo-user");
+          writeStoredValue(STORAGE_KEYS.token, null);
+          writeStoredValue(STORAGE_KEYS.userName, "Companion friend");
+          window.AmilyWellness?.setUser?.("demo-user");
+        };
+        useEffect(() => {
+          window.AmilyWellness?.setUser?.(activeUserId || "demo-user");
+        }, [activeUserId]);
+
+        useEffect(() => {
+          if (!isLoggedIn || !authToken) return;
+          if (activeUserName && activeUserName !== "Companion friend") return;
+
+          let cancelled = false;
+          fetch("/api/profile", {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          })
+            .then((res) => res.json().catch(() => null))
+            .then((payload) => {
+              if (cancelled) return;
+              if (payload?.success && payload.data?.name) {
+                const fetchedName = payload.data.name;
+                setActiveUserName(fetchedName);
+                writeStoredValue(STORAGE_KEYS.userName, fetchedName);
+              }
+            })
+            .catch(() => {
+              // Non-critical
+            });
+
+          return () => {
+            cancelled = true;
+          };
+        }, [isLoggedIn, authToken, activeUserId, activeUserName]);
+        const features = [
+          {
+            icon: ChatBubbleIcon,
+            title: "Chat (main tab)",
+            description:
+              "Warm voice and text chat powered by Gemini and ElevenLabs. The tab sits in the middle for quick access.",
+            note: "Primary in tab bar",
+          },
+          {
+            icon: WellnessLeafIcon,
+            title: "Wellness profile",
+            description:
+              "Personal stats, photo, and only the recommendations that matter. Works like a profile card.",
+            note: "Left of Chat",
+          },
+          {
+            icon: ShieldIcon,
+            title: "Safety board",
+            description:
+              "Large buttons for emergency services, family, and doctors. Care circle is notified quietly.",
+            note: "Right of Chat",
+          },
+          {
+            icon: MemorySparkIcon,
+            title: "Memories",
+            description:
+              "Record small stories and share them with relatives without extra menus or steps.",
+            note: "First tab on the left",
+          },
+          {
+            icon: BuddyIcon,
+            title: "Buddy matches",
+            description:
+              "Connect elders with nearby friends who love similar hobbies. Families see every wave.",
+            note: "Last tab on the right",
+          },
+        ];
+        const contentPaddingClass = isLoggedIn
+          ? "pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))]"
+          : "pb-20";
+
+        return (
+          <div className={`relative min-h-screen text-[#1f2330] md:pb-10 ${contentPaddingClass}`}>
+            <AmbientBackdrop />
+            <Navigation isLoggedIn={isLoggedIn} currentPage={currentPage} onNavigate={handleNavigate} onLogout={handleLogout} />
+
+            <main className="relative z-10 px-4 pt-10">
+              <div className="mx-auto max-w-6xl space-y-12">
+                {!isLoggedIn && currentPage === "home" && HomeTab && (
+                  <HomeTab onNavigate={handleNavigate} features={features} FeatureCard={FeatureCard} />
+                )}
+
+                {isLoggedIn && currentPage === "memories" && MemoriesTab && (
+                  <MemoriesTab userId={activeUserId} authToken={authToken} />
+                )}
+                {isLoggedIn && currentPage === "wellness" && WellnessTab && (
+                  <WellnessTab userId={activeUserId} authToken={authToken} userName={activeUserName} />
+                )}
+                {isLoggedIn && currentPage === "chat" && ChatTab && <ChatTab userId={activeUserId} authToken={authToken} />}
+                {isLoggedIn && currentPage === "safety" && SafetyTab && <SafetyTab userId={activeUserId} authToken={authToken} />}
+                {isLoggedIn && currentPage === "buddy" && BuddyTab && <BuddyTab userId={activeUserId} authToken={authToken} />}
+
+                {!isLoggedIn && currentPage === "login" && <LoginPage onAuthSuccess={handleAuthSuccess} />}
+                {!isLoggedIn && currentPage === "signup" && <SignupPage onAuthSuccess={handleAuthSuccess} />}
+              </div>
+            </main>
+
+            <footer className="relative z-10 mt-16 px-4 pb-12">
+              <div className="mx-auto max-w-6xl rounded-[36px] border border-white/70 bg-white/80 p-6 text-center text-sm text-[#5f6675] shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+                <p className="font-semibold text-[#1f2330]">Amily Companion · Junction Espoo 2025</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.4em] text-[#a26e89]">Design refresh · Private by default</p>
+              </div>
+            </footer>
+
+            {isLoggedIn && <MobileTabBar currentPage={currentPage} onNavigate={handleNavigate} />}
+          </div>
+        );
+      }
+      const root = createRoot(document.getElementById("root"));
+      root.render(React.createElement(App));
+    </script>
+  </body>
+</html>
